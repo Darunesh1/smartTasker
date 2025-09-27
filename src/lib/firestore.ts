@@ -29,21 +29,33 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
   const q = query(tasksCollection, where('userId', '==', userId), orderBy('dueDate', 'asc'));
   
   return onSnapshot(q, (querySnapshot) => {
-    const tasks = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    const tasks = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id,
+        ...data,
+        // Ensure dueDate is a Timestamp, which it should be from Firestore
+        dueDate: data.dueDate,
+       } as Task;
+    });
     
     const priorityOrder: Record<Priority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    
     tasks.sort((a, b) => {
         if (a.completed !== b.completed) {
             return a.completed ? 1 : -1;
         }
 
-        const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-        if (priorityDiff !== 0) return priorityDiff;
-        
         if (a.dueDate && b.dueDate) {
-            return a.dueDate.toMillis() - b.dueDate.toMillis();
+            const dateA = a.dueDate.toMillis();
+            const dateB = b.dueDate.toMillis();
+            if (dateA !== dateB) {
+                return dateA - dateB;
+            }
         }
-        return 0;
+        
+        const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        return priorityDiff;
     });
 
     callback(tasks);

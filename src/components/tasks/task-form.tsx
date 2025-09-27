@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '../auth/auth-provider';
 import { addTask } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Priority } from '@/types/task';
 import { suggestTaskPriority } from '@/ai/flows/ai-powered-priority-suggestion';
 import { Card, CardContent } from '../ui/card';
@@ -28,13 +28,20 @@ import { Card, CardContent } from '../ui/card';
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
   description: z.string().optional(),
-  dueDate: z.string().refine(val => val, { message: 'Due date is required' }),
+  date: z.string().refine(val => val, { message: 'Date is required' }),
+  time: z.string().refine(val => val, { message: 'Time is required' }),
   priority: z.enum(['Low', 'Medium', 'High']),
 });
 
 type TaskFormValues = z.infer<typeof formSchema>;
 
 const priorities: Priority[] = ['Low', 'Medium', 'High'];
+
+const toLocalTimeString = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
 
 export default function TaskForm() {
   const { user } = useAuth();
@@ -47,10 +54,15 @@ export default function TaskForm() {
     defaultValues: {
       title: '',
       description: '',
-      dueDate: '',
+      date: '',
+      time: '',
       priority: 'Medium',
     },
   });
+
+  useEffect(() => {
+    form.setValue('time', toLocalTimeString(new Date()));
+  }, [form]);
 
   async function onSubmit(values: TaskFormValues) {
     if (!user) {
@@ -63,12 +75,13 @@ export default function TaskForm() {
     }
     setIsSubmitting(true);
     try {
-      await addTask(user.uid, { ...values, dueDate: new Date(values.dueDate) });
+      const dueDate = new Date(`${values.date}T${values.time}`);
+      await addTask(user.uid, { title: values.title, description: values.description, dueDate, priority: values.priority });
       toast({
         title: 'Task Created',
         description: 'Your new task has been added successfully.',
       });
-      form.reset({ title: '', description: '', dueDate: '', priority: 'Medium' });
+      form.reset({ title: '', description: '', date: '', time: toLocalTimeString(new Date()), priority: 'Medium' });
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -161,41 +174,54 @@ export default function TaskForm() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="dueDate"
+                  name="date"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Due Date</FormLabel>
                       <FormControl>
-                        <Input type="datetime-local" {...field} />
+                        <Input type="date" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
+                 <FormField
                   control={form.control}
-                  name="priority"
+                  name="time"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Priority</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {priorities.map((p) => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Due Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {priorities.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <Button type="submit" className="w-full" disabled={isSubmitting || isSuggesting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

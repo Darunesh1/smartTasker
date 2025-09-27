@@ -86,9 +86,13 @@ export async function addTask(
 }
 
 // Update a task
-export async function updateTask(taskId: string, updates: Partial<Omit<Task, 'id'>>) {
+export async function updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) {
   const taskDoc = doc(db, 'tasks', taskId);
-  await updateDoc(taskDoc, updates);
+  const dataToUpdate = { ...updates };
+  if (updates.dueDate instanceof Date) {
+      dataToUpdate.dueDate = Timestamp.fromDate(updates.dueDate)
+  }
+  await updateDoc(taskDoc, dataToUpdate);
 }
 
 export async function toggleTaskCompletion(taskId: string, completed: boolean) {

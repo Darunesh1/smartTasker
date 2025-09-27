@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import type { Priority } from '@/types/task';
 import { suggestTaskPriority } from '@/ai/flows/ai-powered-priority-suggestion';
 import { Card, CardContent } from '../ui/card';
+import { format, addHours, isToday } from 'date-fns';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
@@ -31,6 +32,13 @@ const formSchema = z.object({
   date: z.string().refine(val => val, { message: 'Date is required' }),
   time: z.string().refine(val => val, { message: 'Time is required' }),
   priority: z.enum(['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal']),
+}).refine(data => {
+    const selectedDateTime = new Date(`${data.date}T${data.time}`);
+    // Allow a small grace period for submission
+    return selectedDateTime > new Date(Date.now() - 60000);
+}, {
+    message: "Due date and time must be in the future.",
+    path: ["time"],
 });
 
 type TaskFormValues = z.infer<typeof formSchema>;
@@ -43,6 +51,17 @@ const toLocalTimeString = (date: Date) => {
     return `${hours}:${minutes}`;
 }
 
+const getTodayString = () => format(new Date(), 'yyyy-MM-dd');
+
+const getDefaultDateTime = () => {
+    const now = new Date();
+    const futureTime = addHours(now, 1);
+    return {
+        date: format(futureTime, 'yyyy-MM-dd'),
+        time: toLocalTimeString(futureTime),
+    };
+};
+
 export default function TaskForm() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,15 +73,13 @@ export default function TaskForm() {
     defaultValues: {
       title: '',
       description: '',
-      date: '',
-      time: '',
+      ...getDefaultDateTime(),
       priority: 'Medium',
     },
+    mode: 'onChange'
   });
 
-  useEffect(() => {
-    form.setValue('time', toLocalTimeString(new Date()));
-  }, [form]);
+  const watchedDate = form.watch('date');
 
   async function onSubmit(values: TaskFormValues) {
     if (!user) {
@@ -81,7 +98,12 @@ export default function TaskForm() {
         title: 'Task Created',
         description: 'Your new task has been added successfully.',
       });
-      form.reset({ title: '', description: '', date: '', time: toLocalTimeString(new Date()), priority: 'Medium' });
+      form.reset({
+        title: '',
+        description: '',
+        ...getDefaultDateTime(),
+        priority: 'Medium',
+      });
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -123,6 +145,14 @@ export default function TaskForm() {
       setIsSuggesting(false);
     }
   }
+
+  const getMinTime = () => {
+    if (watchedDate && isToday(new Date(watchedDate))) {
+      const now = new Date();
+      return toLocalTimeString(now);
+    }
+    return undefined;
+  };
 
 
   return (
@@ -179,7 +209,7 @@ export default function TaskForm() {
                     <FormItem>
                       <FormLabel>Due Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" min={getTodayString()} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -192,7 +222,7 @@ export default function TaskForm() {
                     <FormItem>
                       <FormLabel>Due Time</FormLabel>
                       <FormControl>
-                        <Input type="time" {...field} />
+                        <Input type="time" min={getMinTime()} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

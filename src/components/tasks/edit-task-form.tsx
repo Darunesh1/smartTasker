@@ -19,10 +19,10 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateTask } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Priority, Task } from '@/types/task';
 import { suggestTaskPriority } from '@/ai/flows/ai-powered-priority-suggestion';
-import { format } from 'date-fns';
+import { format, addHours, isToday, getHours, getMinutes } from 'date-fns';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
@@ -30,6 +30,12 @@ const formSchema = z.object({
   date: z.string().refine(val => val, { message: 'Date is required' }),
   time: z.string().refine(val => val, { message: 'Time is required' }),
   priority: z.enum(['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal']),
+}).refine(data => {
+    const selectedDateTime = new Date(`${data.date}T${data.time}`);
+    return selectedDateTime > new Date();
+}, {
+    message: "Due date and time must be in the future.",
+    path: ["time"],
 });
 
 type TaskFormValues = z.infer<typeof formSchema>;
@@ -41,6 +47,8 @@ const toLocalTimeString = (date: Date) => {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
 }
+
+const getTodayString = () => format(new Date(), 'yyyy-MM-dd');
 
 export default function EditTaskForm({ task, onFinished }: { task: Task, onFinished: () => void }) {
   const { toast } = useToast();
@@ -58,7 +66,10 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
       time: toLocalTimeString(dueDate),
       priority: task.priority,
     },
+    mode: 'onChange'
   });
+
+  const watchedDate = form.watch('date');
 
   async function onSubmit(values: TaskFormValues) {
     setIsSubmitting(true);
@@ -117,6 +128,14 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
     }
   }
 
+  const getMinTime = () => {
+    if (watchedDate && isToday(new Date(watchedDate))) {
+      const now = new Date();
+      return toLocalTimeString(now);
+    }
+    return undefined;
+  };
+
 
   return (
     <Form {...form}>
@@ -170,7 +189,7 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
                 <FormItem>
                   <FormLabel>Due Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" min={getTodayString()} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -183,7 +202,7 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
                 <FormItem>
                   <FormLabel>Due Time</FormLabel>
                   <FormControl>
-                    <Input type="time" {...field} />
+                    <Input type="time" min={getMinTime()} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

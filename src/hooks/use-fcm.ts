@@ -21,12 +21,29 @@ export function useFcm() {
     setIsTokenLoading(true);
     try {
       if (typeof window !== 'undefined' && 'Notification' in window) {
-        setPermission(Notification.permission);
-        if (Notification.permission === 'granted') {
+        const currentPermission = Notification.permission;
+        setPermission(currentPermission);
+
+        if (currentPermission === 'granted') {
           const preference = await getUserNotificationPreference(user.uid);
           setIsSubscribed(preference);
+
+          // If preference is true, ensure token exists
+          if (preference) {
+             const messaging = getMessaging(app);
+             const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FCM_VAPID_KEY });
+             if (currentToken) {
+                await saveFcmToken(user.uid, currentToken);
+             } else {
+                // This might happen if token was deleted from browser but preference is still true
+                await updateUserNotificationPreference(user.uid, false);
+                setIsSubscribed(false);
+             }
+          }
         } else {
           setIsSubscribed(false);
+          // If permission is not granted, ensure preference is false
+          await updateUserNotificationPreference(user.uid, false);
         }
       }
     } catch (error) {
@@ -40,6 +57,29 @@ export function useFcm() {
   useEffect(() => {
     checkSubscriptionStatus();
   }, [checkSubscriptionStatus]);
+  
+  // Listen for changes in notification permission
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('permissions' in navigator)) {
+        return;
+    }
+    
+    const permissionName = 'notifications' as PermissionName;
+    const permissions = navigator.permissions;
+    if (!permissions) return;
+    
+    permissions.query({ name: permissionName }).then((status) => {
+        const handlePermissionChange = () => {
+            setPermission(status.state);
+            checkSubscriptionStatus();
+        }
+        status.onchange = handlePermissionChange;
+        return () => {
+            status.onchange = null;
+        }
+    });
+  }, [checkSubscriptionStatus]);
+
 
   // Handle foreground messages
   useEffect(() => {
@@ -78,6 +118,8 @@ export function useFcm() {
           toast({ title: "Notifications Enabled", description: "You will now receive task reminders." });
         }
       } else {
+        await updateUserNotificationPreference(user.uid, false);
+        setIsSubscribed(false);
         toast({ variant: 'destructive', title: "Permission Denied", description: "You will not receive notifications." });
       }
     } catch (error) {
@@ -85,22 +127,19 @@ export function useFcm() {
       toast({ variant: 'destructive', title: "Error", description: "Could not enable notifications." });
     } finally {
         setIsTokenLoading(false);
+        checkSubscriptionStatus(); // re-check state
     }
-  }, [user, toast]);
+  }, [user, toast, checkSubscriptionStatus]);
 
   const unsubscribe = useCallback(async () => {
      if (!user) return;
      setIsTokenLoading(true);
      try {
         const messaging = getMessaging(app);
-        const token = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FCM_VAPID_KEY });
-        if (token) {
-            await deleteToken(messaging);
-            await deleteFcmToken(token);
-        }
+        // We don't need to get the token here, just update the preference
         await updateUserNotificationPreference(user.uid, false);
         setIsSubscribed(false);
-        console.log('User unsubscribed and token deleted.');
+        console.log('User unsubscribed.');
         toast({ title: "Notifications Disabled", description: "You will no longer receive task reminders." });
      } catch (error) {
         console.error('Error unsubscribing:', error);

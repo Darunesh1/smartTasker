@@ -111,6 +111,26 @@ export default function NotificationBell() {
       );
     }
 
+    if (permission === 'default') {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Enable Task Reminders</CardTitle>
+                    <CardDescription>
+                        Stay on top of your deadlines by enabling browser notifications.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={requestPermissionAndSubscribe} disabled={isTokenLoading}>
+                        {isTokenLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Enable Notifications
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    // Permission is 'granted'
     return (
         <div className="space-y-6">
             <div className="flex items-center space-x-4 rounded-md border p-4">

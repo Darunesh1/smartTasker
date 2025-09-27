@@ -32,4 +32,14 @@ const nextConfig: NextConfig = {
   },
 };
 
+if (process.env.NODE_ENV === 'development') {
+  const devOrigin = process.env.NEXT_PUBLIC_DEV_ORIGIN;
+  if (devOrigin) {
+    nextConfig.experimental = {
+      ...nextConfig.experimental,
+      allowedDevOrigins: [devOrigin],
+    };
+  }
+}
+
 export default nextConfig;

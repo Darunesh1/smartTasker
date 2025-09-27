@@ -11,11 +11,13 @@ import {
   updateDoc,
   where,
   Timestamp,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Task, Priority } from '@/types/task';
 
 const tasksCollection = collection(db, 'tasks');
+const fcmTokensCollection = collection(db, 'fcmTokens');
 
 // Get tasks for a user
 export async function getTasks(userId: string): Promise<Task[]> {
@@ -116,4 +118,10 @@ export async function toggleTaskCompletion(taskId: string, completed: boolean) {
 export async function deleteTask(taskId: string) {
   const taskDoc = doc(db, 'tasks', taskId);
   await deleteDoc(taskDoc);
+}
+
+// Save FCM token
+export async function saveFcmToken(userId: string, token: string) {
+    const tokenDoc = doc(fcmTokensCollection, token);
+    await setDoc(tokenDoc, { userId, token, createdAt: serverTimestamp() });
 }

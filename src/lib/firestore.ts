@@ -1,3 +1,4 @@
+
 import {
   addDoc,
   collection,
@@ -125,19 +126,29 @@ export async function deleteTask(taskId: string) {
 // Save FCM token
 export async function saveFcmToken(userId: string, token: string) {
     const tokenDoc = doc(fcmTokensCollection, token);
-    await setDoc(tokenDoc, { userId, createdAt: serverTimestamp() });
+    await setDoc(tokenDoc, { userId, createdAt: serverTimestamp() }, { merge: true });
 }
 
-// Delete FCM token
-export async function deleteFcmToken(token: string) {
-    const tokenDoc = doc(fcmTokensCollection, token);
-    await deleteDoc(tokenDoc);
+// Delete FCM token for a user
+export async function deleteFcmTokenForUser(userId: string) {
+    console.log(`Querying tokens for user ${userId} to delete.`);
+    const q = query(fcmTokensCollection, where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+        console.log(`Deleted ${querySnapshot.size} tokens for user ${userId}.`);
+    }
 }
 
 // User notification preferences
 export async function updateUserNotificationPreference(userId: string, enabled: boolean) {
     const userDoc = doc(usersCollection, userId);
     await setDoc(userDoc, { notificationsEnabled: enabled }, { merge: true });
+    // If notifications are disabled, remove any existing FCM tokens for the user.
+    if (!enabled) {
+        await deleteFcmTokenForUser(userId);
+    }
 }
 
 export async function getUserNotificationPreference(userId: string): Promise<boolean> {

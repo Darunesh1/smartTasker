@@ -22,6 +22,7 @@ export default function HomePage() {
   
   useEffect(() => {
     if (user) {
+      console.log('Current user UID:', user.uid);
       const unsubscribe = onTasksSnapshot(user.uid, (newTasks) => {
         setTasks(newTasks);
       });

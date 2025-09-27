@@ -14,12 +14,19 @@ const db = getFirestore(adminApp);
 const messaging = getMessaging(adminApp);
 
 export async function getFcmTokenForUser(userId: string): Promise<string | null> {
-  // FCM tokens are often used as the document ID for simplicity
-  const tokensQuery = await db.collection('fcmTokens').where('userId', '==', userId).limit(1).get();
-  if (tokensQuery.empty) {
+  const tokensSnapshot = await db.collection('fcmTokens').where('userId', '==', userId).limit(1).get();
+  if (tokensSnapshot.empty) {
     return null;
   }
-  return tokensQuery.docs[0].id;
+  return tokensSnapshot.docs[0].id;
+}
+
+export async function getUserNotificationPreference(userId: string): Promise<boolean> {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+        return userDoc.data()?.notificationsEnabled === true;
+    }
+    return false; // Default to false if no setting found
 }
 
 export async function sendNotification(token: string, payload: { title: string; body: string }) {

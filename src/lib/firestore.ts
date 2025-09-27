@@ -12,12 +12,14 @@ import {
   where,
   Timestamp,
   setDoc,
+  getDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Task, Priority } from '@/types/task';
 
 const tasksCollection = collection(db, 'tasks');
 const fcmTokensCollection = collection(db, 'fcmTokens');
+const usersCollection = collection(db, 'users');
 
 // Get tasks for a user
 export async function getTasks(userId: string): Promise<Task[]> {
@@ -123,5 +125,26 @@ export async function deleteTask(taskId: string) {
 // Save FCM token
 export async function saveFcmToken(userId: string, token: string) {
     const tokenDoc = doc(fcmTokensCollection, token);
-    await setDoc(tokenDoc, { userId, token, createdAt: serverTimestamp() });
+    await setDoc(tokenDoc, { userId, createdAt: serverTimestamp() });
+}
+
+// Delete FCM token
+export async function deleteFcmToken(token: string) {
+    const tokenDoc = doc(fcmTokensCollection, token);
+    await deleteDoc(tokenDoc);
+}
+
+// User notification preferences
+export async function updateUserNotificationPreference(userId: string, enabled: boolean) {
+    const userDoc = doc(usersCollection, userId);
+    await setDoc(userDoc, { notificationsEnabled: enabled }, { merge: true });
+}
+
+export async function getUserNotificationPreference(userId: string): Promise<boolean> {
+    const userDoc = doc(usersCollection, userId);
+    const docSnap = await getDoc(userDoc);
+    if (docSnap.exists()) {
+        return docSnap.data()?.notificationsEnabled === true;
+    }
+    return false; // Default to false if no setting is stored
 }

@@ -4,7 +4,7 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {getFcmTokenForUser, sendNotification} from '@/lib/fcm-server';
+import {getFcmTokenForUser, sendNotification, getUserNotificationPreference} from '@/lib/fcm-server';
 
 const TestNotificationInputSchema = z.object({
   userId: z.string().describe('The ID of the user to send the notification to.'),
@@ -25,6 +25,13 @@ const sendTestNotificationFlow = ai.defineFlow(
   },
   async ({userId}) => {
     console.log(`Sending test notification to user ${userId}`);
+
+    const preference = await getUserNotificationPreference(userId);
+    if (!preference) {
+      console.log(`User ${userId} has not enabled notifications. Aborting.`);
+      throw new Error('Notifications are not enabled for this user.');
+    }
+
     const token = await getFcmTokenForUser(userId);
     if (token) {
       await sendNotification(token, {
@@ -34,6 +41,7 @@ const sendTestNotificationFlow = ai.defineFlow(
       console.log(`Test notification sent to user ${userId}`);
     } else {
       console.warn(`No FCM token found for user ${userId}`);
+      throw new Error('No FCM token found for this user.');
     }
   }
 );

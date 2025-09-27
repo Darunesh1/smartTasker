@@ -29,7 +29,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   date: z.string().refine(val => val, { message: 'Date is required' }),
   time: z.string().refine(val => val, { message: 'Time is required' }),
-  priority: z.enum(['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal']),
+  priority: z.enum(['Critical', 'High', 'Medium', 'Low', 'Very Low']),
 }).refine(data => {
     const selectedDateTime = new Date(`${data.date}T${data.time}`);
     return selectedDateTime > new Date();
@@ -40,7 +40,7 @@ const formSchema = z.object({
 
 type TaskFormValues = z.infer<typeof formSchema>;
 
-const priorities: Priority[] = ['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal'];
+const priorities: Priority[] = ['Critical', 'High', 'Medium', 'Low', 'Very Low'];
 
 const toLocalTimeString = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0');

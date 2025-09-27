@@ -22,8 +22,8 @@ export type PrioritySuggestionInput = z.infer<typeof PrioritySuggestionInputSche
 
 const PrioritySuggestionOutputSchema = z.object({
   suggestedPriority: z
-    .enum(['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal'])
-    .describe('The suggested priority for the task: Critical, High, Medium-High, Medium, Medium-Low, Low, or Minimal.'),
+    .enum(['Critical', 'High', 'Medium', 'Low', 'Very Low'])
+    .describe('The suggested priority for the task: Critical, High, Medium, Low, or Very Low.'),
   explanation: z
     .string()
     .describe('Explanation of why the task was assigned the suggested priority.'),
@@ -40,7 +40,7 @@ const prioritySuggestionPrompt = ai.definePrompt({
   name: 'prioritySuggestionPrompt',
   input: {schema: PrioritySuggestionInputSchema},
   output: {schema: PrioritySuggestionOutputSchema},
-  prompt: `You are a task management expert. Your job is to suggest a priority for a task based on its description. The available priorities are: Critical, High, Medium-High, Medium, Medium-Low, Low, Minimal.
+  prompt: `You are a task management expert. Your job is to suggest a priority for a task based on its description. The available priorities are: Critical, High, Medium, Low, Very Low.
 
 Task Description: {{{taskDescription}}}
 

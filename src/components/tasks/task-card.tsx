@@ -1,6 +1,6 @@
 'use client';
 
-import type { Task } from '@/types/task';
+import type { Task, Priority } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -21,24 +21,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import EditTaskForm from './edit-task-form';
 import { useState, useEffect } from 'react';
 
-const priorityStyles = {
+const priorityStyles: Record<Priority, string> = {
   Critical: 'border-l-4 border-red-500',
   High: 'border-l-4 border-accent',
-  'Medium-High': 'border-l-4 border-orange-400',
   Medium: 'border-l-4 border-primary',
-  'Medium-Low': 'border-l-4 border-sky-400',
-  Low: 'border-l-4 border-secondary-foreground',
-  Minimal: 'border-l-4 border-gray-400',
+  Low: 'border-l-4 border-sky-400',
+  'Very Low': 'border-l-4 border-gray-400',
 };
 
-const priorityBadgeVariants = {
+const priorityBadgeVariants: Record<Priority, "destructive" | "default" | "secondary" | "outline"> = {
     Critical: "destructive",
     High: "destructive",
-    'Medium-High': "default",
     Medium: "default",
-    'Medium-Low': "secondary",
     Low: "secondary",
-    Minimal: "outline"
+    'Very Low': "outline"
 } as const;
 
 

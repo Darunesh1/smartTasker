@@ -41,13 +41,11 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
     });
     
     const priorityOrder: Record<Priority, number> = { 
-        'Critical': 7, 
-        'High': 6, 
-        'Medium-High': 5, 
-        'Medium': 4, 
-        'Medium-Low': 3,
+        'Critical': 5, 
+        'High': 4, 
+        'Medium': 3, 
         'Low': 2, 
-        'Minimal': 1
+        'Very Low': 1
     };
     
     tasks.sort((a, b) => {

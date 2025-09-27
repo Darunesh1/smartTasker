@@ -1,6 +1,6 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type Priority = 'Critical' | 'High' | 'Medium-High' | 'Medium' | 'Medium-Low' | 'Low' | 'Minimal';
+export type Priority = 'Critical' | 'High' | 'Medium' | 'Low' | 'Very Low';
 
 export interface Task {
   id: string;

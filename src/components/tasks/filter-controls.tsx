@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Priority } from '@/types/task';
 
 type FilterStatus = 'all' | 'past-due' | 'due-today' | 'due-this-week' | 'upcoming' | 'completed';
-const priorities: (Priority | 'all')[] = ['all', 'Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal'];
+const priorities: (Priority | 'all')[] = ['all', 'Critical', 'High', 'Medium', 'Low', 'Very Low'];
 
 interface FilterControlsProps {
     filterStatus: FilterStatus;

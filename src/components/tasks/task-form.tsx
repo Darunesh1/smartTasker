@@ -30,12 +30,12 @@ const formSchema = z.object({
   description: z.string().optional(),
   date: z.string().refine(val => val, { message: 'Date is required' }),
   time: z.string().refine(val => val, { message: 'Time is required' }),
-  priority: z.enum(['Low', 'Medium', 'High']),
+  priority: z.enum(['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal']),
 });
 
 type TaskFormValues = z.infer<typeof formSchema>;
 
-const priorities: Priority[] = ['Low', 'Medium', 'High'];
+const priorities: Priority[] = ['Critical', 'High', 'Medium-High', 'Medium', 'Medium-Low', 'Low', 'Minimal'];
 
 const toLocalTimeString = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0');

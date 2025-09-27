@@ -26,7 +26,7 @@ export async function getTasks(userId: string): Promise<Task[]> {
 
 // Subscribe to task updates
 export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => void) {
-  const q = query(tasksCollection, where('userId', '==', userId), orderBy('dueDate', 'asc'));
+  const q = query(tasksCollection, where('userId', '==', userId));
   
   return onSnapshot(q, (querySnapshot) => {
     const tasks = querySnapshot.docs.map(doc => {
@@ -39,7 +39,15 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
        } as Task;
     });
     
-    const priorityOrder: Record<Priority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    const priorityOrder: Record<Priority, number> = { 
+        'Critical': 7, 
+        'High': 6, 
+        'Medium-High': 5, 
+        'Medium': 4, 
+        'Medium-Low': 3,
+        'Low': 2, 
+        'Minimal': 1
+    };
     
     tasks.sort((a, b) => {
         if (a.completed !== b.completed) {

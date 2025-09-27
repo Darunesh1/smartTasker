@@ -18,15 +18,23 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '../ui/checkbox';
 
 const priorityStyles = {
+  Critical: 'border-l-4 border-red-500',
   High: 'border-l-4 border-accent',
+  'Medium-High': 'border-l-4 border-orange-400',
   Medium: 'border-l-4 border-primary',
+  'Medium-Low': 'border-l-4 border-sky-400',
   Low: 'border-l-4 border-secondary-foreground',
+  Minimal: 'border-l-4 border-gray-400',
 };
 
 const priorityBadgeVariants = {
+    Critical: "destructive",
     High: "destructive",
+    'Medium-High': "default",
     Medium: "default",
-    Low: "secondary"
+    'Medium-Low': "secondary",
+    Low: "secondary",
+    Minimal: "outline"
 } as const;
 
 
@@ -58,7 +66,7 @@ export default function TaskCard({ task }: { task: Task }) {
             <CardTitle className={cn("text-lg", task.completed && 'line-through text-muted-foreground')}>{task.title}</CardTitle>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={priorityBadgeVariants[task.priority]}>{task.priority}</Badge>
+          <Badge variant={priorityBadgeVariants[task.priority] || 'secondary'}>{task.priority}</Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">

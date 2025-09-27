@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
           <div className="flex items-center gap-2 mb-4">
             <CheckSquare className="h-10 w-10 text-primary" />
-            <span className="text-3xl font-bold font-headline text-primary">TaskWise</span>
+            <span className="text-3xl font-bold font-headline text-primary">SmartTasker</span>
           </div>
           <p className="text-muted-foreground">Loading your tasks...</p>
         </div>

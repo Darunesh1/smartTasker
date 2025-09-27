@@ -26,7 +26,7 @@ export default function LoginPage() {
         <div className="flex justify-center">
             <Logo />
         </div>
-        <h1 className="text-center text-3xl font-bold font-headline">Welcome to TaskWise</h1>
+        <h1 className="text-center text-3xl font-bold font-headline">Welcome to SmartTasker</h1>
         <p className="text-center text-muted-foreground">Log in or create an account to manage your tasks.</p>
         <LoginForm />
       </div>

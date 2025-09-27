@@ -97,7 +97,7 @@ export default function NotificationBell() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                     <strong>Instructions:</strong>
                     <ol className="list-decimal list-inside mt-2 space-y-1">
                         <li>Go to your browser's site settings for this page.</li>
@@ -105,7 +105,7 @@ export default function NotificationBell() {
                         <li>Change the setting from "Block" to "Allow".</li>
                         <li>You may need to refresh the page after changing the setting.</li>
                     </ol>
-                </p>
+                </div>
             </CardContent>
           </Card>
       );

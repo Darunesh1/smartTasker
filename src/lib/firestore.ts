@@ -36,6 +36,7 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
         ...data,
         // Ensure dueDate is a Timestamp, which it should be from Firestore
         dueDate: data.dueDate,
+        createdAt: data.createdAt,
        } as Task;
     });
     
@@ -50,10 +51,18 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
     };
     
     tasks.sort((a, b) => {
+        // 1. Sort by completion status (incomplete first)
         if (a.completed !== b.completed) {
             return a.completed ? 1 : -1;
         }
 
+        // 2. Sort by priority level (higher priority first)
+        const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        if (priorityDiff !== 0) {
+            return priorityDiff;
+        }
+        
+        // 3. Sort by due date (earliest first)
         if (a.dueDate && b.dueDate) {
             const dateA = a.dueDate.toMillis();
             const dateB = b.dueDate.toMillis();
@@ -62,8 +71,12 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
             }
         }
         
-        const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-        return priorityDiff;
+        // 4. Sort by creation date for ties (earliest first)
+        if (a.createdAt && b.createdAt) {
+            return a.createdAt.toMillis() - b.createdAt.toMillis();
+        }
+
+        return 0;
     });
 
     callback(tasks);

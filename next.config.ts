@@ -30,6 +30,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    allowedDevOrigins: ['https://6000-firebase-studio-*.cluster-*.cloudworkstations.dev'],
+  },
 };
 
 if (process.env.NODE_ENV === 'development') {
@@ -37,7 +40,7 @@ if (process.env.NODE_ENV === 'development') {
   if (devOrigin) {
     nextConfig.experimental = {
       ...nextConfig.experimental,
-      allowedDevOrigins: [devOrigin],
+      allowedDevOrigins: [...(nextConfig.experimental?.allowedDevOrigins || []), devOrigin],
     };
   }
 }

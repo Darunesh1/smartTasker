@@ -78,7 +78,7 @@ export default function TaskCard({ task }: { task: Task }) {
       <CardContent>
         {task.description && <CardDescription className={cn('pt-2', task.completed && 'line-through text-muted-foreground')}>{task.description}</CardDescription>}
         <p className="text-sm text-muted-foreground mt-4">
-          Due: {task.dueDate ? format(task.dueDate.toDate(), 'PPP') : 'No due date'}
+          Due: {task.dueDate ? format(task.dueDate.toDate(), 'PPP, p') : 'No due date'}
         </p>
       </CardContent>
     </Card>

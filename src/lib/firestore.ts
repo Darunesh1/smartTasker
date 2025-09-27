@@ -33,6 +33,10 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
     
     const priorityOrder: Record<Priority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
     tasks.sort((a, b) => {
+        if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+        }
+
         const priorityDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
         if (priorityDiff !== 0) return priorityDiff;
         

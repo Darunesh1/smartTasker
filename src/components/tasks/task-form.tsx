@@ -15,12 +15,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, Sparkles } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
+import { Loader2, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { useAuth } from '../auth/auth-provider';
 import { addTask } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -32,7 +28,7 @@ import { Card, CardContent } from '../ui/card';
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
   description: z.string().optional(),
-  dueDate: z.date(),
+  dueDate: z.string().refine(val => val, { message: 'Due date is required' }),
   priority: z.enum(['Low', 'Medium', 'High']),
 });
 
@@ -51,7 +47,7 @@ export default function TaskForm() {
     defaultValues: {
       title: '',
       description: '',
-      dueDate: new Date(),
+      dueDate: '',
       priority: 'Medium',
     },
   });
@@ -67,12 +63,12 @@ export default function TaskForm() {
     }
     setIsSubmitting(true);
     try {
-      await addTask(user.uid, values);
+      await addTask(user.uid, { ...values, dueDate: new Date(values.dueDate) });
       toast({
         title: 'Task Created',
         description: 'Your new task has been added successfully.',
       });
-      form.reset({ title: '', description: '', dueDate: new Date(), priority: 'Medium' });
+      form.reset({ title: '', description: '', dueDate: '', priority: 'Medium' });
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -167,37 +163,11 @@ export default function TaskForm() {
                   control={form.control}
                   name="dueDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Due Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, 'PPP')
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                        <Input type="datetime-local" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

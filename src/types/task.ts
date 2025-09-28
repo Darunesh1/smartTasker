@@ -14,4 +14,5 @@ export interface Task {
   userId: string;
   createdAt: Timestamp;
   completed: boolean;
+  source?: 'manual' | 'ai-routine-planner';
 }

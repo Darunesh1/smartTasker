@@ -10,6 +10,7 @@ import type { Task, Priority, Category } from '@/types/task';
 import { onTasksSnapshot } from '@/lib/firestore';
 import FilterControls from '@/components/tasks/filter-controls';
 import { isToday, isThisWeek, isFuture, isPast } from 'date-fns';
+import RoutinePlannerDialog from '@/components/routine-planner/routine-planner-dialog';
 
 type FilterStatus = 'all' | 'past-due' | 'due-today' | 'due-this-week' | 'upcoming' | 'completed';
 
@@ -83,9 +84,15 @@ export default function HomePage() {
       <Header />
       <div className="flex-1 container mx-auto p-4 md:p-8">
         <div className="grid gap-8 md:grid-cols-3">
-          <div className="md:col-span-1">
-            <h2 className="text-2xl font-bold mb-4 font-headline">Create Task</h2>
-            <TaskForm />
+          <div className="md:col-span-1 space-y-8">
+            <div>
+              <h2 className="text-2xl font-bold mb-4 font-headline">Create Task</h2>
+              <TaskForm />
+            </div>
+            <div>
+                <h2 className="text-2xl font-bold mb-4 font-headline">Smart Routine Planner</h2>
+                <RoutinePlannerDialog />
+            </div>
           </div>
           <div className="md:col-span-2">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">

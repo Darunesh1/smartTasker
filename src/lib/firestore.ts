@@ -14,6 +14,7 @@ import {
   Timestamp,
   setDoc,
   getDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Task, Priority, Category } from '@/types/task';
@@ -97,8 +98,33 @@ export async function addTask(
     completed: false,
     createdAt: serverTimestamp(),
     dueDate: Timestamp.fromDate(task.dueDate),
+    source: 'manual',
   });
 }
+
+
+// Batch add new tasks
+export async function batchAddTask(
+  userId: string,
+  tasks: { title: string; description: string; dueDate: Date; priority: Priority, category: Category }[]
+) {
+  const batch = writeBatch(db);
+
+  tasks.forEach(task => {
+    const newTaskRef = doc(tasksCollection);
+    batch.set(newTaskRef, {
+      ...task,
+      userId,
+      completed: false,
+      createdAt: serverTimestamp(),
+      dueDate: Timestamp.fromDate(task.dueDate),
+      source: 'ai-routine-planner'
+    });
+  });
+
+  await batch.commit();
+}
+
 
 // Update a task
 export async function updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) {

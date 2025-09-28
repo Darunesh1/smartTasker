@@ -1,11 +1,30 @@
+'use server';
 import 'server-only';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, cert, ServiceAccount } from 'firebase-admin/app';
 
 let adminApp: App;
+
+// Check if we are in a Vercel production environment
+const isProduction = process.env.VERCEL_ENV === 'production';
+
 if (!getApps().length) {
-  adminApp = initializeApp();
+  if (isProduction && process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
+    // For production, use service account credentials from environment variables
+    const serviceAccount: ServiceAccount = {
+      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+      privateKey: (process.env.FIREBASE_ADMIN_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+    };
+    adminApp = initializeApp({
+      credential: cert(serviceAccount),
+    });
+  } else {
+    // For local development, rely on default credentials or application default credentials
+    // This assumes you've run `gcloud auth application-default login` or have the service account file path in GOOGLE_APPLICATION_CREDENTIALS
+    adminApp = initializeApp();
+  }
 } else {
   adminApp = getApps()[0];
 }

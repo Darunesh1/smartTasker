@@ -8,12 +8,13 @@ let adminApp: App;
 
 // Check if we are in a Vercel production environment
 const isProduction = process.env.VERCEL_ENV === 'production';
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
 if (!getApps().length) {
   if (isProduction && process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
     // For production, use service account credentials from environment variables
     const serviceAccount: ServiceAccount = {
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+      projectId,
       privateKey: (process.env.FIREBASE_ADMIN_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
     };
@@ -23,7 +24,7 @@ if (!getApps().length) {
   } else {
     // For local development, rely on default credentials or application default credentials
     // This assumes you've run `gcloud auth application-default login` or have the service account file path in GOOGLE_APPLICATION_CREDENTIALS
-    adminApp = initializeApp();
+    adminApp = initializeApp({ projectId });
   }
 } else {
   adminApp = getApps()[0];

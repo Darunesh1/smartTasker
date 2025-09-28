@@ -64,7 +64,8 @@ export default function LoginForm() {
     defaultValues: {
         email: '',
         password: '',
-        ...(mode === 'signup' && { displayName: '', confirmPassword: '' }),
+        displayName: '', 
+        confirmPassword: ''
     },
   });
 

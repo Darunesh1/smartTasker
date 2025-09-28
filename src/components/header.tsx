@@ -16,6 +16,7 @@ import {
 import Logo from './logo';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import NotificationBell from './notification-bell';
+import { ThemeToggle } from './theme-toggle';
 
 export default function Header() {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ export default function Header() {
         <Logo />
         {user && (
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

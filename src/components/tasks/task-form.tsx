@@ -21,7 +21,7 @@ import { useAuth } from '../auth/auth-provider';
 import { addTask } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
-import type { Priority } from '@/types/task';
+import type { Priority, Category } from '@/types/task';
 import { suggestTaskPriority } from '@/ai/flows/ai-powered-priority-suggestion';
 import { Card, CardContent } from '../ui/card';
 import { format, addHours, isToday } from 'date-fns';
@@ -32,6 +32,7 @@ const formSchema = z.object({
   date: z.string().refine(val => val, { message: 'Date is required' }),
   time: z.string().refine(val => val, { message: 'Time is required' }),
   priority: z.enum(['Critical', 'High', 'Medium', 'Low', 'Very Low']),
+  category: z.enum(['Work', 'Personal', 'Health', 'Study']),
 }).refine(data => {
     const selectedDateTime = new Date(`${data.date}T${data.time}`);
     // Allow a small grace period for submission
@@ -44,6 +45,7 @@ const formSchema = z.object({
 type TaskFormValues = z.infer<typeof formSchema>;
 
 const priorities: Priority[] = ['Critical', 'High', 'Medium', 'Low', 'Very Low'];
+const categories: Category[] = ['Work', 'Personal', 'Health', 'Study'];
 
 const toLocalTimeString = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0');
@@ -75,6 +77,7 @@ export default function TaskForm() {
       description: '',
       ...getDefaultDateTime(),
       priority: 'Medium',
+      category: 'Work',
     },
     mode: 'onChange'
   });
@@ -93,7 +96,7 @@ export default function TaskForm() {
     setIsSubmitting(true);
     try {
       const dueDate = new Date(`${values.date}T${values.time}`);
-      await addTask(user.uid, { title: values.title, description: values.description, dueDate, priority: values.priority });
+      await addTask(user.uid, { ...values, dueDate });
       toast({
         title: 'Task Created',
         description: 'Your new task has been added successfully.',
@@ -103,6 +106,7 @@ export default function TaskForm() {
         description: '',
         ...getDefaultDateTime(),
         priority: 'Medium',
+        category: 'Work',
       });
     } catch (error) {
       toast({
@@ -229,30 +233,54 @@ export default function TaskForm() {
                   )}
                 />
             </div>
-            
-            <FormField
-              control={form.control}
-              name="priority"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Priority</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {priorities.map((p) => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priority</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {priorities.map((p) => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+            
             <Button type="submit" className="w-full" disabled={isSubmitting || isSuggesting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Add Task

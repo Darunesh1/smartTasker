@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { updateTask } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import type { Priority, Task } from '@/types/task';
+import type { Priority, Task, Category } from '@/types/task';
 import { suggestTaskPriority } from '@/ai/flows/ai-powered-priority-suggestion';
 import { format, addHours, isToday, getHours, getMinutes } from 'date-fns';
 
@@ -30,6 +30,7 @@ const formSchema = z.object({
   date: z.string().refine(val => val, { message: 'Date is required' }),
   time: z.string().refine(val => val, { message: 'Time is required' }),
   priority: z.enum(['Critical', 'High', 'Medium', 'Low', 'Very Low']),
+  category: z.enum(['Work', 'Personal', 'Health', 'Study']),
 }).refine(data => {
     const selectedDateTime = new Date(`${data.date}T${data.time}`);
     return selectedDateTime > new Date();
@@ -41,6 +42,7 @@ const formSchema = z.object({
 type TaskFormValues = z.infer<typeof formSchema>;
 
 const priorities: Priority[] = ['Critical', 'High', 'Medium', 'Low', 'Very Low'];
+const categories: Category[] = ['Work', 'Personal', 'Health', 'Study'];
 
 const toLocalTimeString = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0');
@@ -65,6 +67,7 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
       date: format(dueDate, 'yyyy-MM-dd'),
       time: toLocalTimeString(dueDate),
       priority: task.priority,
+      category: task.category,
     },
     mode: 'onChange'
   });
@@ -79,7 +82,8 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
           title: values.title, 
           description: values.description, 
           dueDate: newDueDate, 
-          priority: values.priority 
+          priority: values.priority,
+          category: values.category
       });
       toast({
         title: 'Task Updated',
@@ -210,28 +214,52 @@ export default function EditTaskForm({ task, onFinished }: { task: Task, onFinis
             />
         </div>
         
-        <FormField
-          control={form.control}
-          name="priority"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Priority</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {priorities.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {priorities.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        </div>
 
         <div className="flex gap-2 justify-end">
             <Button type="button" variant="ghost" onClick={onFinished}>Cancel</Button>

@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Header from '@/components/header';
 import TaskForm from '@/components/tasks/task-form';
 import TaskList from '@/components/tasks/task-list';
-import type { Task, Priority } from '@/types/task';
+import type { Task, Priority, Category } from '@/types/task';
 import { onTasksSnapshot } from '@/lib/firestore';
 import FilterControls from '@/components/tasks/filter-controls';
 import { isToday, isThisWeek, isFuture, isPast } from 'date-fns';
@@ -19,6 +19,7 @@ export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [filterPriority, setFilterPriority] = useState<Priority | 'all'>('all');
+  const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -40,10 +41,15 @@ export default function HomePage() {
     return tasks.filter(task => {
       const dueDate = task.dueDate.toDate();
       const isCompleted = task.completed;
-      const isPastDue = !isCompleted && isPast(dueDate);
+      const isPastDue = !isCompleted && isPast(dueDate) && !isToday(dueDate);
 
       // Priority filter
       if (filterPriority !== 'all' && task.priority !== filterPriority) {
+        return false;
+      }
+      
+      // Category filter
+      if (filterCategory !== 'all' && task.category !== filterCategory) {
         return false;
       }
 
@@ -57,7 +63,7 @@ export default function HomePage() {
           // isThisWeek includes past days of the current week, so we also check if it's in the future or today
           return !isCompleted && isThisWeek(dueDate, { weekStartsOn: 1 }) && (isFuture(dueDate) || isToday(dueDate));
         case 'upcoming':
-          return !isCompleted && isFuture(dueDate);
+          return !isCompleted && isFuture(dueDate) && !isToday(dueDate);
         case 'completed':
           return isCompleted;
         case 'all':
@@ -65,7 +71,7 @@ export default function HomePage() {
           return true;
       }
     });
-  }, [tasks, filterStatus, filterPriority]);
+  }, [tasks, filterStatus, filterPriority, filterCategory]);
 
 
   if (loading || !user) {
@@ -89,6 +95,8 @@ export default function HomePage() {
                 setFilterStatus={setFilterStatus}
                 filterPriority={filterPriority}
                 setFilterPriority={setFilterPriority}
+                filterCategory={filterCategory}
+                setFilterCategory={setFilterCategory}
                 />
             </div>
             <TaskList tasks={filteredTasks} />

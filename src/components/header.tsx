@@ -14,9 +14,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Logo from './logo';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, LayoutDashboard, BarChart3 } from 'lucide-react';
 import NotificationBell from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+
+const NavLink = ({ href, children, icon: Icon }: { href: string, children: React.ReactNode, icon: React.ElementType }) => {
+    const pathname = usePathname();
+    const isActive = pathname === href;
+    return (
+        <Link href={href} legacyBehavior passHref>
+            <Button variant={isActive ? "secondary" : "ghost"} className="gap-2">
+                <Icon className="h-5 w-5" />
+                {children}
+            </Button>
+        </Link>
+    );
+};
+
 
 export default function Header() {
   const { user } = useAuth();
@@ -28,7 +46,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container flex h-16 items-center justify-between">
-        <Logo />
+        <div className="flex items-center gap-6">
+            <Logo />
+            <nav className="hidden md:flex items-center gap-4">
+               <NavLink href="/" icon={LayoutDashboard}>Dashboard</NavLink>
+               <NavLink href="/analytics" icon={BarChart3}>Analytics</NavLink>
+            </nav>
+        </div>
+        
         {user && (
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -65,6 +90,14 @@ export default function Header() {
           </div>
         )}
       </div>
+       <div className="md:hidden border-t">
+          <div className="container flex items-center justify-center p-2">
+             <nav className="flex items-center gap-4">
+               <NavLink href="/" icon={LayoutDashboard}>Dashboard</NavLink>
+               <NavLink href="/analytics" icon={BarChart3}>Analytics</NavLink>
+            </nav>
+          </div>
+       </div>
     </header>
   );
 }

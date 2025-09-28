@@ -16,7 +16,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Task, Priority } from '@/types/task';
+import type { Task, Priority, Category } from '@/types/task';
 
 const tasksCollection = collection(db, 'tasks');
 const fcmTokensCollection = collection(db, 'fcmTokens');
@@ -90,7 +90,7 @@ export function onTasksSnapshot(userId: string, callback: (tasks: Task[]) => voi
 // Add a new task
 export async function addTask(
   userId: string,
-  task: { title: string; description: string | undefined; dueDate: Date; priority: Priority }
+  task: { title: string; description: string | undefined; dueDate: Date; priority: Priority, category: Category }
 ) {
   await addDoc(tasksCollection, {
     ...task,

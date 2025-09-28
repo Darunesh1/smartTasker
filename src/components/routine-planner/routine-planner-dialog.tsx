@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,27 +11,23 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, Wand2, Trash2, Pencil } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, Trash2 } from 'lucide-react';
 import { parseRoutine, type ParsedTask } from '@/ai/flows/routine-parser-flow';
 import { Card, CardContent } from '../ui/card';
-import { format, startOfToday } from 'date-fns';
 import { useAuth } from '../auth/auth-provider';
 import { batchAddTask } from '@/lib/firestore';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
-import type { Priority, Category } from '@/types/task';
+import type { Priority } from '@/types/task';
 import { v4 as uuidv4 } from 'uuid';
+import { format } from 'date-fns';
 
 interface EditableParsedTask extends ParsedTask {
     id: string;
 }
-
-const priorities: Priority[] = ['Critical', 'High', 'Medium', 'Low', 'Very Low'];
-const categories: Category[] = ['Work', 'Personal', 'Health', 'Study'];
 
 const priorityBadgeVariants: Record<Priority, "destructive" | "default" | "secondary" | "outline"> = {
     Critical: "destructive",
@@ -60,13 +57,46 @@ export default function RoutinePlannerDialog() {
     }
     setIsLoading(true);
     try {
+      const now = new Date();
+      // Format date for the AI to understand, including timezone.
+      const currentDateString = now.toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            timeZoneName: 'short',
+        });
+        
       const result = await parseRoutine({
         routineDescription: routineText,
-        currentDate: startOfToday().toISOString(),
+        currentDate: currentDateString,
       });
+
       if (result.tasks && result.tasks.length > 0) {
-        setParsedTasks(result.tasks.map(task => ({...task, id: uuidv4()})));
-        setView('preview');
+        const validTasks = result.tasks
+            .map(task => ({...task, id: uuidv4()}))
+            .filter(task => new Date(task.dueDate) > now); // Ensure all dates are in the future
+
+        if (validTasks.length < result.tasks.length) {
+            toast({
+                variant: 'destructive',
+                title: 'AI Parsing Issue',
+                description: 'Some tasks with past due dates were ignored. Please check your routine description.',
+            })
+        }
+        
+        setParsedTasks(validTasks);
+        if (validTasks.length > 0) {
+            setView('preview');
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Parsing Failed',
+                description: 'The AI could not identify any future tasks. Please try rephrasing your routine.',
+            });
+        }
       } else {
         toast({
             variant: 'destructive',
@@ -97,18 +127,13 @@ export default function RoutinePlannerDialog() {
     }
     setIsLoading(true);
     try {
-        const today = startOfToday();
-        let cumulativeTime = 0;
-
         const tasksToCreate = parsedTasks.map(task => {
-            const startDate = new Date(today.getTime() + cumulativeTime * 60000);
-            cumulativeTime += task.duration;
             return {
                 title: task.title,
                 description: task.description || '',
                 priority: task.priority,
                 category: task.category,
-                dueDate: startDate,
+                dueDate: new Date(task.dueDate), // Use the date from AI
             };
         });
 
@@ -146,7 +171,7 @@ export default function RoutinePlannerDialog() {
     setIsOpen(false);
   }
   
-  const totalDuration = parsedTasks.reduce((acc, task) => acc + task.duration, 0);
+  const totalDuration = parsedTasks.reduce((acc, task) => acc + (task.duration || 0), 0);
   const totalHours = Math.floor(totalDuration / 60);
   const totalMinutes = totalDuration % 60;
 
@@ -210,9 +235,9 @@ export default function RoutinePlannerDialog() {
             <div className="py-4 flex-1 min-h-0">
                 <div className="flex justify-between items-center mb-4 px-1">
                     <p className="font-medium">{parsedTasks.length} tasks found</p>
-                    <p className="text-sm text-muted-foreground">
+                    {totalDuration > 0 && <p className="text-sm text-muted-foreground">
                         Total estimated time: {totalHours > 0 && `${totalHours}h `}{totalMinutes > 0 && `${totalMinutes}m`}
-                    </p>
+                    </p>}
                 </div>
                 <ScrollArea className="h-[400px] pr-4">
                    <div className="space-y-3">
@@ -236,7 +261,8 @@ export default function RoutinePlannerDialog() {
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <Badge variant={priorityBadgeVariants[task.priority]}>{task.priority}</Badge>
                                         <Badge variant="secondary">{task.category}</Badge>
-                                        <Badge variant="outline">{task.duration} mins</Badge>
+                                        {task.duration && <Badge variant="outline">{task.duration} mins</Badge>}
+                                        <Badge variant="outline">{format(new Date(task.dueDate), 'p')}</Badge>
                                     </div>
                                </div>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteTask(task.id)}>

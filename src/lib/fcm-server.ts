@@ -6,13 +6,14 @@ import { initializeApp, getApps, App, cert, ServiceAccount } from 'firebase-admi
 
 let adminApp: App;
 
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 // Check if we are in a Vercel production environment
 const isProduction = process.env.VERCEL_ENV === 'production';
-const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
 if (!getApps().length) {
   if (isProduction && process.env.FIREBASE_ADMIN_PRIVATE_KEY) {
     // For production, use service account credentials from environment variables
+    console.log('Initializing Firebase Admin SDK for production...');
     const serviceAccount: ServiceAccount = {
       projectId,
       privateKey: (process.env.FIREBASE_ADMIN_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
@@ -20,10 +21,12 @@ if (!getApps().length) {
     };
     adminApp = initializeApp({
       credential: cert(serviceAccount),
+      projectId,
     });
   } else {
     // For local development, rely on default credentials or application default credentials
     // This assumes you've run `gcloud auth application-default login` or have the service account file path in GOOGLE_APPLICATION_CREDENTIALS
+    console.log('Initializing Firebase Admin SDK for local development...');
     adminApp = initializeApp({ projectId });
   }
 } else {

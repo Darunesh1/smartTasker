@@ -96,6 +96,7 @@ export async function addTask(
     ...task,
     userId,
     completed: false,
+    reminderSent: false,
     createdAt: serverTimestamp(),
     dueDate: Timestamp.fromDate(task.dueDate),
   });
@@ -104,11 +105,13 @@ export async function addTask(
 // Update a task
 export async function updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) {
   const taskDoc = doc(db, 'tasks', taskId);
-  const dataToUpdate = { ...updates };
+  const dataToUpdate: Partial<Task> & { dueDate?: Timestamp } = { ...updates };
   if (updates.dueDate instanceof Date) {
-      dataToUpdate.dueDate = Timestamp.fromDate(updates.dueDate)
+      dataToUpdate.dueDate = Timestamp.fromDate(updates.dueDate);
+      // Reset reminderSent when due date changes
+      dataToUpdate.reminderSent = false;
   }
-  await updateDoc(taskDoc, dataToUpdate);
+  await updateDoc(taskDoc, dataToUpdate as any);
 }
 
 export async function toggleTaskCompletion(taskId: string, completed: boolean) {

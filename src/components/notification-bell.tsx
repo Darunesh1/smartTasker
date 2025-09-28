@@ -1,7 +1,6 @@
 'use client';
 
 import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
-import { useFcm } from "@/hooks/use-fcm";
 import {
   Dialog,
   DialogContent,
@@ -11,57 +10,48 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "./auth/auth-provider";
-import { sendTestNotification } from "@/ai/flows/send-test-notification";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
+import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
 
 export default function NotificationBell() {
-  const { user } = useAuth();
   const { 
     permission, 
-    isTokenLoading, 
     isSubscribed, 
-    requestPermissionAndSubscribe, 
-    unsubscribe,
-  } = useFcm();
+    isLoading,
+    requestPermission, 
+    toggleSubscription,
+  } = useBrowserNotifications();
   const { toast } = useToast();
-  const [isSendingTest, setIsSendingTest] = useState(false);
 
-  const handleTestNotification = async () => {
-    if (!user) return;
-    setIsSendingTest(true);
-    try {
-      await sendTestNotification({ userId: user.uid });
+  const handleTestNotification = () => {
+    if (isSubscribed) {
+      new Notification("Test Notification", {
+        body: "This is a test notification from SmartTasker!",
+        icon: '/logo.png' 
+      });
       toast({
         title: "Test Notification Sent",
-        description: "You should receive a test notification shortly.",
+        description: "You should see a test notification from your browser.",
       });
-    } catch (error: any) {
-      console.error("Error sending test notification:", error);
-      toast({
+    } else {
+       toast({
         variant: "destructive",
-        title: "Could not send test",
-        description: error.message || "An unknown error occurred.",
+        title: "Notifications Not Enabled",
+        description: "Please enable notifications to send a test.",
       });
-    } finally {
-      setIsSendingTest(false);
     }
   };
 
   const handleToggle = async (checked: boolean) => {
-    if (checked) {
-      await requestPermissionAndSubscribe();
-    } else {
-      await unsubscribe();
-    }
+    await toggleSubscription(checked);
   };
   
   const getIcon = () => {
-    if (isTokenLoading) {
+    if (isLoading) {
       return <Loader2 className="h-5 w-5 animate-spin" />;
     }
     if (isSubscribed) {
@@ -74,7 +64,7 @@ export default function NotificationBell() {
   };
 
   const getTooltipText = () => {
-    if (isTokenLoading) {
+    if (isLoading) {
         return "Loading notification status...";
     }
     if (isSubscribed) {
@@ -121,8 +111,8 @@ export default function NotificationBell() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={requestPermissionAndSubscribe} disabled={isTokenLoading}>
-                        {isTokenLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={requestPermission} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Enable Notifications
                     </Button>
                 </CardContent>
@@ -139,14 +129,14 @@ export default function NotificationBell() {
                         Task Reminders
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                        Receive push notifications for your upcoming task deadlines.
+                        Receive browser notifications for your upcoming task deadlines.
                     </p>
                 </div>
                  <Switch 
                     id="notification-toggle" 
                     checked={isSubscribed}
                     onCheckedChange={handleToggle}
-                    disabled={isTokenLoading}
+                    disabled={isLoading}
                 />
             </div>
 
@@ -159,8 +149,7 @@ export default function NotificationBell() {
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <Button onClick={handleTestNotification} disabled={isSendingTest}>
-                        {isSendingTest && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={handleTestNotification} disabled={!isSubscribed}>
                         Send Test Notification
                     </Button>
                     </CardContent>
@@ -182,7 +171,7 @@ export default function NotificationBell() {
         <DialogHeader>
           <DialogTitle>Notification Settings</DialogTitle>
           <DialogDescription>
-            Manage your preferences for task reminders.
+            Manage your preferences for browser-based task reminders.
           </DialogDescription>
         </DialogHeader>
         {renderContent()}

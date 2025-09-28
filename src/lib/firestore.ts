@@ -19,7 +19,6 @@ import { db } from './firebase';
 import type { Task, Priority, Category } from '@/types/task';
 
 const tasksCollection = collection(db, 'tasks');
-const fcmTokensCollection = collection(db, 'fcmTokens');
 const usersCollection = collection(db, 'users');
 
 // Get tasks for a user
@@ -96,7 +95,6 @@ export async function addTask(
     ...task,
     userId,
     completed: false,
-    reminderSent: false,
     createdAt: serverTimestamp(),
     dueDate: Timestamp.fromDate(task.dueDate),
   });
@@ -108,8 +106,6 @@ export async function updateTask(taskId: string, updates: Partial<Omit<Task, 'id
   const dataToUpdate: Partial<Task> & { dueDate?: Timestamp } = { ...updates };
   if (updates.dueDate instanceof Date) {
       dataToUpdate.dueDate = Timestamp.fromDate(updates.dueDate);
-      // Reset reminderSent when due date changes
-      dataToUpdate.reminderSent = false;
   }
   await updateDoc(taskDoc, dataToUpdate as any);
 }
@@ -126,32 +122,11 @@ export async function deleteTask(taskId: string) {
   await deleteDoc(taskDoc);
 }
 
-// Save FCM token
-export async function saveFcmToken(userId: string, token: string) {
-    const tokenDoc = doc(fcmTokensCollection, token);
-    await setDoc(tokenDoc, { userId, createdAt: serverTimestamp() }, { merge: true });
-}
-
-// Delete FCM token for a user
-export async function deleteFcmTokenForUser(userId: string) {
-    console.log(`Querying tokens for user ${userId} to delete.`);
-    const q = query(fcmTokensCollection, where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-        await Promise.all(deletePromises);
-        console.log(`Deleted ${querySnapshot.size} tokens for user ${userId}.`);
-    }
-}
 
 // User notification preferences
 export async function updateUserNotificationPreference(userId: string, enabled: boolean) {
     const userDoc = doc(usersCollection, userId);
     await setDoc(userDoc, { notificationsEnabled: enabled }, { merge: true });
-    // If notifications are disabled, remove any existing FCM tokens for the user.
-    if (!enabled) {
-        await deleteFcmTokenForUser(userId);
-    }
 }
 
 export async function getUserNotificationPreference(userId: string): Promise<boolean> {

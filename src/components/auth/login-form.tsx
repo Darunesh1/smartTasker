@@ -1,11 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  updateProfile,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -15,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '../ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" role="img" viewBox="0 0 24 24">
@@ -26,32 +31,66 @@ const GoogleIcon = () => (
     </svg>
 );
 
+const loginSchema = z.object({
+    email: z.string().email({ message: "Invalid email address." }),
+    password: z.string().min(1, { message: "Password is required." }),
+});
+
+const signUpSchema = z.object({
+    displayName: z.string().min(2, { message: "Name must be at least 2 characters." }),
+    email: z.string().email({ message: "Invalid email address." }),
+    password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+    confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+});
+
+type LoginValues = z.infer<typeof loginSchema>;
+type SignUpValues = z.infer<typeof signUpSchema>;
+
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleAuthAction = async (action: 'signIn' | 'signUp') => {
+  const formSchema = mode === 'login' ? loginSchema : signUpSchema;
+  type FormValues = LoginValues | SignUpValues;
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+        email: '',
+        password: '',
+        ...(mode === 'signup' && { displayName: '', confirmPassword: '' }),
+    },
+  });
+
+  const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsLoading(true);
     try {
-      if (action === 'signIn') {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
+        if (mode === 'signup') {
+            const { displayName, email, password } = data as SignUpValues;
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await updateProfile(userCredential.user, { displayName });
+            toast({ title: 'Account Created', description: 'Welcome to SmartTasker!' });
+        } else {
+            const { email, password } = data as LoginValues;
+            await signInWithEmailAndPassword(auth, email, password);
+        }
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: error.code.replace('auth/', '').replace(/-/g, ' '),
-      });
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: error.code.replace('auth/', '').replace(/-/g, ' '),
+        });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
+
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -69,56 +108,111 @@ export default function LoginForm() {
     }
   };
 
+  const toggleMode = () => {
+    setMode(prevMode => (prevMode === 'login' ? 'signup' : 'login'));
+    form.reset();
+  }
+
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading || isGoogleLoading}
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                 {mode === 'signup' && (
+                    <FormField
+                        control={form.control}
+                        name="displayName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="John Doe" {...field} disabled={isLoading || isGoogleLoading} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                                <Input type="email" placeholder="m@example.com" {...field} disabled={isLoading || isGoogleLoading} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading || isGoogleLoading}
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                                <Input type="password" placeholder="••••••••" {...field} disabled={isLoading || isGoogleLoading} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={() => handleAuthAction('signIn')} className="w-full" disabled={isLoading || isGoogleLoading}>
+                {mode === 'signup' && (
+                    <FormField
+                        control={form.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Confirm Password</FormLabel>
+                                <FormControl>
+                                    <Input type="password" placeholder="••••••••" {...field} disabled={isLoading || isGoogleLoading} />
+                               
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+                
+                <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Log In
+                    {mode === 'login' ? 'Log In' : 'Sign Up'}
                 </Button>
-                <Button onClick={() => handleAuthAction('signUp')} variant="secondary" className="w-full" disabled={isLoading || isGoogleLoading}>
-                    Sign Up
-                </Button>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-                {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                Sign in with Google
-            </Button>
+            </form>
+        </Form>
+        <div className="mt-4 text-center text-sm">
+            {mode === 'login' ? (
+                <>
+                    Don&apos;t have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={toggleMode}>
+                        Sign Up
+                    </Button>
+                </>
+            ) : (
+                <>
+                    Already have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={toggleMode}>
+                        Log In
+                    </Button>
+                </>
+            )}
         </div>
+        <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+            <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+            </span>
+            </div>
+        </div>
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
+            {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+            Sign in with Google
+        </Button>
       </CardContent>
     </Card>
   );
